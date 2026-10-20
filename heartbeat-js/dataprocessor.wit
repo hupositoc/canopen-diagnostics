@@ -1,0 +1,209 @@
+﻿package canking:extension;
+
+/**
+ * DataProcessor extension component.
+ */
+world data-processor {
+
+    /**
+     * Supported log message severities.
+     */
+    enum log-severity {
+        /**
+         * Logs that are used for interactive investigation during development. These logs should primarily
+         * contain information useful for debugging and have no long-term value.
+         */
+        DEBUG,
+        /// Logs that track the general flow of the application. These logs should have long-term value.
+        INFORMATION,
+        /**
+         * Logs that highlight an abnormal or unexpected event in the application flow, but do not otherwise
+         * cause the application execution to stop.
+         */
+        WARNING,
+        /**
+         * Logs that highlight when the current flow of execution is stopped due to a failure. These should
+         * indicate a failure in the current activity, not an application-wide failure.
+         */
+        ERROR,
+        /**
+         * Logs that describe an unrecoverable application or system crash, or a catastrophic failure that
+         * requires immediate attention. Will trigger a message box to be displayed in CanKing.
+         */
+        CRITICAL,
+    }
+
+    /**
+     * A value type, could be either Numeric or Text.
+     */
+    variant numeric-or-text {
+        /// Numeric value type.
+        numeric(f64),
+        /// Text value type.
+        text(string),
+    }
+
+    /**
+     * Definition of a frame that should be processed or has been processed.
+     */
+    record frame {
+        /// The frame identifier.
+        id: s32,
+        /// The canlib channel number of the channel that received the frame.
+        channel-number: s32,
+        /// The frame data.
+        data: list<u8>,
+        /// The length of the data array.
+        data-length: s32,
+        /// The data length code.
+        dlc: s32,
+        /// The frame timestamp in seconds.
+        time: f64,
+        /// The canlib CAN message flags if this is a CAN frame.
+        can-flags: option<s32>,
+        /// The linlib LIN message flags if this is a LIN frame.
+        lin-flags: option<s32>,
+    }
+
+    /**
+     * A result record that will be returned by all frame processing functions.
+     */
+    record process-result {
+        /**
+         * An optional flag that indicates if the frame should be blocked and not be passed to
+         * next data processor.
+         */
+        block-frame: option<bool>,
+        /**
+         * An optional message name. If the extension recognizes the frame then it could return a
+         * message name to describe the frame.
+         */
+        message-name: option<string>,
+        /**
+         * An optional collection of signals that the extension has extracted from the frame
+         * data. Each item in the collecion is a tuple holding the signal name and value.
+         */
+        signals: option<list<tuple<string, numeric-or-text>>>,
+        /**
+         * An optional collection of properties that the extension has extracted from the frame
+         * data. Each item in the collecion is a tuple holding the property name and value.
+         */
+        properties: option<list<tuple<string, numeric-or-text>>>,
+        /**
+         * An optional extra frame to be streamed to the UI. This is typically used if the extension
+         * implements a transport protocol and assembles a set of received frames into a new
+         * higher layer protocol frame.
+         */
+        extra-frame: option<frame>
+    }
+
+    /**
+     * Gets the extension's display name.
+     */
+    export display-name: func() -> string;
+    /**
+     * Gets the extension's description.
+     */
+    export description: func() -> string;
+    /**
+     * Gets the extension's version.
+     */
+    export version: func() -> string;
+    /**
+     * Gets the extension's author.
+     */
+    export author: func() -> string;
+    /**
+     * Gets the extension's default configuration as a JSON formatted string.
+     */
+    export default-config: func() -> string;
+
+    /**
+     * Called by CanKing when a measurement is starting. The current configuration is passed to
+     * the extension. The configuration will include all properties specified by the default configuration.
+     * @param config The current configuration as a JSON formatted string.
+     */
+    export on-start-measurement: func(config: string);
+    /**
+     * Called by CanKing when a measurement is stopped.
+     */
+    export on-stop-measurement: func();
+    /**
+     * Called by CanKing when a new frame has been received and should be processed by the extension.
+     * @param frame - The received frame to be processed.
+     * @returns The processed frame if it should be passed further in the processing chain.
+     *          Normally the frame should be returned, but if implementing a filter and if
+     *          the frame should be blocked by the filter then nothing should be returned.
+     */
+    export on-rx-frame: func(frame: frame) -> option<process-result>;
+    /**
+     * Called by CanKing when a new frame has been transmitted and should be processed by the extension.
+     * @param frame - The transmitted frame to be processed.
+     * @returns The processed frame if it should be passed further in the processing chain.
+     *          Normally the frame should be returned, but if implementing a filter and if
+     *          the frame should be blocked by the filter then nothing should be returned.
+     */
+    export on-tx-frame: func(frame: frame) -> option<process-result>;
+    /**
+     * Called by CanKing when a new error frame has been received and should be processed by the extension.
+     * @param frame - The received frame to be processed.
+     * @returns The processed frame if it should be passed further in the processing chain.
+     *          Normally the frame should be returned, but if implementing a filter and if
+     *          the frame should be blocked by the filter then nothing should be returned.
+     */
+    export on-error-frame: func(frame: frame) -> option<process-result>;
+
+    /**
+     * Called by the extension to set the error message of the CanKing node.
+     * @param error - The error message.
+     */
+    import set-error: func(error: string);
+    /**
+     * Called by the extension to write messages to CanKing's log.
+     * @param message  - The log message.
+     * @param severity - The severity.
+     */
+    import log: func(message: string, severity: log-severity);
+    /**
+     * Called by the extension to send a CAN message to a CanKing output channel.
+     * @param channel - The output channel name or identifier.
+     * @param id - The CAN identifier.
+     * @param data - The CAN message data.
+     * @param data-length - The length of the CAN message data.
+     * @param can-flags - Canlib CAN message flags.
+     */
+    import send-can: func(channel: string, id: s32, data: list<u8>, data-length: s32, can-flags: s32);
+    /**
+     * Called by the extension to send a LIN message to a CanKing output channel.
+     * @param channel - The output channel name or identifier.
+     * @param id - The LIN identifier.
+     * @param data - The LIN message data.
+     * @param data-length - The length of the LIN message data.
+     */
+    import send-lin: func(channel: string, id: s32, data: list<u8>, data-length: s32);
+    /**
+     * Called by the extension to send a LIN wakeup message to a CanKing output channel.
+     * @param channel - The output channel name or identifier.
+     */
+    import send-lin-wakeup: func(channel: string);
+    /**
+     * Called by the extension to send a LIN request message to a CanKing output channel.
+     * @param channel - The output channel name or identifier.
+     * @param id - The LIN identifier.
+     */
+    import send-lin-request: func(channel: string, id: s32);
+    /**
+     * Called by the extension to send a LIN update message to a CanKing output channel.
+     * @param channel - The output channel name or identifier.
+     * @param id - The LIN identifier.
+     * @param data - The LIN message data.
+     * @param data-length - The length of the LIN message data.
+     */
+    import send-lin-update: func(channel: string, id: s32, data: list<u8>, data-length: s32);
+    /**
+     * Called by the extension to send a LIN clear message to a CanKing output channel.
+     * @param channel - The output channel name or identifier.
+     * @param id - The LIN identifier.
+     */
+    import send-lin-clear: func(channel: string, id: s32);
+}

@@ -1,0 +1,13 @@
+{
+  "name": "CANopen\",
+  "apiVersion": "1.0.0",
+  "author": "Jibaek Kim",
+  "version": "0.0.1",
+  "description": "CANopen High Level Analyzer for Saleae Logic 16",
+  "extensions": {
+    "CANopen Analyzer": {
+      "type": "HighLevelAnalyzer",
+      "entryPoint": "HighLevelAnalyzer.Hla"
+    }
+  }
+}
