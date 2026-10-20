@@ -1,0 +1,14 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1280" height="420" viewBox="0 0 1280 420" role="img" aria-labelledby="title description">
+<title id="title">CANopen Diagnostics overview</title>
+<desc id="description">Make CANopen traffic and heartbeat state readable while checking normal operation of a marine control and monitoring module through a PC-based test setup. Flow: CAN frames; Decode identifiers; Track heartbeat state; Review event evidence</desc>
+<rect width="1280" height="420" rx="24" fill="#ffffff"/>
+<g font-family="sans-serif">
+<text font-family="Arial" x="48" y="54" font-size="20" font-weight="700" fill="#1b64da">MARINE COMMUNICATION DIAGNOSTICS</text>
+<text font-family="Arial" x="48" y="112" font-size="44" font-weight="700" fill="#191f28">CANopen Diagnostics</text>
+<text font-family="Arial" x="48" y="156" font-size="24" fill="#4e5968">Readable protocol events and heartbeat state during marine testing</text>
+<rect x="48" y="202" width="1184" height="154" rx="16" fill="#f2f4f6"/>
+<text font-family="Arial" x="72" y="238" font-size="18" font-weight="700" fill="#1b64da">PURPOSE</text>
+<text font-family="Arial" x="72" y="276" font-size="24" fill="#191f28">Make CANopen traffic and heartbeat state readable while checking normal operation of a</text>
+<text font-family="Arial" x="72" y="306" font-size="24" fill="#191f28">marine control and monitoring module through a PC-based test setup.</text>
+<text font-family="Arial" x="48" y="396" font-size="18" fill="#4e5968">Engineering overview · purpose, implementation and evidence</text>
+</g></svg>

@@ -1,37 +1,150 @@
-# CANopen Diagnostics | 프레임 해석·Heartbeat 감시
+<a id="readme-top"></a>
 
-CAN 프레임의 의미와 노드 상태를 파악하고 Heartbeat 지연·통신 오류를 추적하기 위한 분석 도구 모음이다.
+![CANopen Diagnostics: Readable protocol events and heartbeat state during marine testing](docs/assets/overview.svg)
 
-## 기술과 구성
+# CANopen Diagnostics
 
-Python · JavaScript · C# · CANopen · CanKing
+**Readable protocol events and heartbeat state during marine testing.**
+
+Make CANopen traffic and heartbeat state readable while checking normal operation of a marine control and monitoring module through a PC-based test setup.
+
+| At a glance | |
+|---|---|
+| Context | Marine Communication Diagnostics |
+| Current evidence | Source-level decoder checks and author-confirmed marine test context |
+| Stack | Python, JavaScript, C#, CANopen, Saleae HLA, CanKing WIT host interfaces |
+| Author | [hupositoc](https://github.com/hupositoc) |
+
+[Case study](docs/case-study.md) · [Architecture](docs/architecture.md) · [Validation](docs/validation.md) · [Design rationale](docs/design-rationale.md)
+
+## Table of Contents
+
+- [About The Project](#about-the-project)
+- [Getting Started](#getting-started)
+- [Usage](#usage)
+- [Roadmap](#roadmap)
+- [Contributing](#contributing)
+- [License](#license)
+- [Contact](#contact)
+- [Acknowledgments](#acknowledgments)
+
+## About The Project
+
+### Why I built it
+
+The author associates these communication checks with Type Approval testing under plans referring to DNV-CG-0339 and LR-TS-01. No product identity, laboratory identity, bus capture or approval certificate is included.
+
+A CAN identifier and a byte string are insufficient for quick interpretation during a test. The engineer needs to distinguish boot-up, operational and stopped states, identify SDO requests or aborts, and notice when an expected heartbeat is no longer arriving.
+
+### What I implemented
+
+Provide a Saleae HLA that maps common CANopen identifiers and fields to readable events, plus CanKing host processors that track heartbeat counts, timeout state and recovery. Keep decoding and liveness monitoring separate because a valid message and timely communication are different questions.
+
+### What this made possible
+
+- Read NMT, SYNC, emergency, PDO, SDO and heartbeat events without repeatedly looking up identifier ranges.
+- Track heartbeat arrival and timeout transitions during a performance log.
+- Relate communication-state observations to periodic status-signal measurements from the wider test setup.
+
+### What happened in practice
+
+The code provides readable protocol interpretation and state-tracking support for the author’s test workflow. It does not implement the complete CANopen specification or prove that a device passed protocol conformance or Type Approval.
+
+### Built With
+
+Python, JavaScript, C#, CANopen, Saleae HLA, CanKing WIT host interfaces. Dependencies provide integration capabilities; the source links below identify the project-specific behavior.
+
+### Engineering decisions
+
+### Decode and monitor separately
+
+A heartbeat decoder labels a received message. A monitor also needs a clock and persistent state to detect the absence of a message.
+
+### Keep unknown events visible
+
+Unrecognized frames retain their CAN identifier and bytes. Unknown does not become a false operational state.
+
+### Document implementation differences
+
+JS and C# defaults differ. They are related implementations, not a verified equivalence pair.
+
+### Code to inspect
+
+| Source entry point | Responsibility |
+|---|---|
+| [`decode_canopen`](saleae-hla/HighLevelAnalyzer.py#L52) | Routes identifier ranges to protocol-specific decoders. |
+| [`decode_heartbeat`](saleae-hla/HighLevelAnalyzer.py#L91) | Maps boot-up, stopped, operational and pre-operational states. |
+| [`decode_sdo`](saleae-hla/HighLevelAnalyzer.py#L85) | Extracts index, subindex, payload and abort codes. |
+| [`timeoutMs`](heartbeat-js/basic.js#L4) | JS host state machine; default timeout 6000 ms. |
+| [`TimeoutMs`](heartbeat-csharp/basic.cs#L13) | C# host state machine; default timeout 3000 ms. |
+| [`world`](heartbeat-js/dataprocessor.wit#L6) | Describes the host/component interface. |
+
+### AI-assisted engineering
+
+I use AI development tools to turn concrete needs into working software. My engineering responsibilities include defining the problem, interpreting the operating constraints, reviewing behavior, investigating failures and checking results. AI assistance is a development method; it is not evidence that a feature works. File-by-file AI authorship or a specific assistant/model is not claimed without the corresponding development record.
+
+## Getting Started
+
+### Prerequisites
+
+Python for decoder tests; Logic 2 for the HLA; the relevant CanKing host and WASI toolchain for JS/C# processors.
+
+### Installation
 
 ```text
-saleae-hla/: CANopen 프레임 해석
-heartbeat-js/: CanKing용 JS 처리기
-heartbeat-csharp/: C# 처리기
+git clone https://github.com/hupositoc/canopen-diagnostics.git
+cd canopen-diagnostics
 ```
 
-## 엔지니어링 관점
+Then follow the project-specific path:
 
-COB-ID 해석, Heartbeat 수신 횟수·타임아웃·복구 상태 관리, CAN 오류 프레임 추적. 언어별 구현은 서로 다른 기본 타임아웃을 가지므로 동일 동작이라고 주장하지 않는다.
+```text
+python -m unittest discover -s tests -v
+```
 
-## AI를 활용한 개발 방식
+The commands describe the intended setup. See the validation record for which parts were actually executed in the current environment.
 
-이 프로젝트는 AI 개발 도구를 활용한 문제 해결 포트폴리오의 일부다. AI가 코드를 작성했다는 사실보다 문제 정의, 기술 선택, 결과 검토, 실패 원인 분석과 검증 근거를 중심으로 설명한다. 원본 개발 대화 전체는 확인하지 못했으므로 파일별 수작업·AI 작성 비율이나 사용 모델은 추정하지 않는다.
+## Usage
 
-## 시작하기
+![Four-stage workflow for CANopen Diagnostics](docs/assets/workflow.svg)
 
-Python HLA: Logic 2의 Extensions에서 `saleae-hla/`를 개발 확장으로 불러온다.
+**Text equivalent:** CAN frames → Decode identifiers → Track heartbeat state → Review event evidence.
 
-JS와 C# 처리기는 CanKing의 WIT 기반 호스트 환경을 전제로 한다. WIT 인터페이스는 `heartbeat-js/dataprocessor.wit`에 보관했다. C# 프로젝트의 WIT 참조 경로만 현재 폴더 구조에 맞게 수정했다. 호스트 SDK·WASI 빌드 타깃이 필요하며, 일반 .NET 라이브러리처럼 바로 빌드된다고 보장하지 않는다.
+Start by defining the intended input and expected behavior. Save the configuration with the experiment or test session so that an output can be interpreted later. Review exceptions and raw evidence before treating a summary as a final conclusion.
 
-## 실행과 현재 상태
+Decoder fixture tests exercise actual HLA parsing through a minimal frame-interface adapter. They do not simulate hardware sampling, a complete CANopen stack or the CanKing runtime.
 
-CanKing 호스트 API·도구 체인이 필요하다. 실제 장치 식별·프로젝트 파일과 컴파일된 WASM은 포함하지 않았다. 회사 명의의 author 표기는 출처 보존을 위해 유지했으며 공개 권한 확인 대상으로 표시했다.
+### Boundaries and known limitations
 
-이번 공개 준비에서는 원본의 선별 복사와 정적 점검을 수행했다. 지원 도구·장비가 없는 환경에서 실행 성공, 운영 성과, 모델 정확도를 새로 확인한 것으로 주장하지 않는다. 상세 검증 결과는 `VALIDATION.md`에 기록한다.
+- The HLA is a focused decoder and does not cover every CANopen service or malformed-frame condition.
+- CanKing API/WASI integration and real-bus timing have not been revalidated here.
+- Timeout and node-ID defaults are configuration examples, not certification requirements.
 
-## 출처·공개 범위
+Read the [case study](docs/case-study.md) for the purpose and enabled workflow, and [architecture](docs/architecture.md) for the source-level explanation. The [validation document](docs/validation.md) separates verified checks, author-reported use and pending integration work.
 
-원본 작업 폴더에서 소스를 선별한 공개 준비본이다. 로그·자격증명·로컬 SDK 경로·실제 업무 데이터·실행 바이너리는 제외했다. 기존 저작권 고지와 제3자 라이선스는 유지한다. 원본 파일의 고지와 의존성 이용 조건이 적용되며, 이 저장소의 문서가 새 라이선스를 부여하지 않는다.
+## Roadmap
+
+- [ ] Add timestamped heartbeat integration fixtures.
+- [ ] Make node ID and timeout explicit deployment configuration.
+- [ ] Compare JS and C# results on the same event stream before claiming parity.
+
+These are planned tasks, not completed capabilities.
+
+## Contributing
+
+Use an issue to describe a reproducible problem, expected behavior, actual behavior and the environment. For a change, keep the scope focused and attach the relevant test or recording. Do not submit private customer data, identifying test captures, credentials or confidential certification documents.
+
+## License
+
+Existing file-level notices and third-party licenses remain in force. A repository-wide open-source license has not been selected for all archived material. Public visibility does not grant rights beyond those existing terms. Documentation structure attribution does not relicense the software.
+
+## Contact
+
+[hupositoc on GitHub](https://github.com/hupositoc) · [Project issues](https://github.com/hupositoc/canopen-diagnostics/issues)
+
+## Acknowledgments
+
+The top-level section order follows [Best-README-Template](https://github.com/othneildrew/Best-README-Template), reviewed under its [Unlicense](https://github.com/othneildrew/Best-README-Template/blob/main/LICENSE.txt). All project narratives are written for this implementation. Visual guidance is attributed in [design rationale](docs/design-rationale.md). The broader 50-repository documentation review informs the reading order, source links and evidence presentation; it does not imply endorsement by those projects.
+
+
+[Engineering decision record](docs/engineering-decisions.md) · [Review of 50 reference repositories](docs/reference-review-50.md)

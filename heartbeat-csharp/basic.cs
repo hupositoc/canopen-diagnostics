@@ -24,7 +24,7 @@ public class DataProcessorWorldImpl : IDataProcessorWorld
 
     public static string Version() => "1.0.0";
 
-    public static string Author() => "Hansol Oriontech";
+    public static string Author() => "Marine diagnostics project";
 
     public static string DefaultConfig() => "{}";
 

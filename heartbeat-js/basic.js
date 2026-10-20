@@ -31,7 +31,7 @@ export function version() {
 }
 
 export function author() {
-    return "Hansol Oriontech";
+    return "Marine diagnostics project";
 }
 
 export function defaultConfig() {
