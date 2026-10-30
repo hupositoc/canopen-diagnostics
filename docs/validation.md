@@ -34,3 +34,8 @@ An expected output, architecture drawing or sample configuration is not a measur
 ## Executed decoder fixtures
 
 `python -m unittest discover -s tests -v` passed **8 tests**: operational/empty heartbeat, broadcast/short NMT, little-endian SDO abort, PDO payload, unknown-frame fallback and single frame-assembly flush. A minimal Saleae frame adapter permits execution of the real decoder logic. No Saleae/CanKing device behavior is simulated or claimed.
+
+
+## SDO + SSI logger helpers
+
+`python -m unittest discover -s tests -v` now runs **14 tests**: the 8 decoder fixtures above plus 6 checks of the logger's protocol helpers (SDO request layout, little-endian abort code, unknown abort, expedited data bytes, short frame, SSI hex formatting). The tkinter GUI, Kvaser bus access and serial port were not exercised here; the tool was used by the author on a bench setup in June 2025 (author-reported use).

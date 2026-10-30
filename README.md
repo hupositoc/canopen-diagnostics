@@ -12,7 +12,7 @@ Make CANopen traffic and heartbeat state readable while checking normal operatio
 |---|---|
 | Context | Marine Communication Diagnostics |
 | Current evidence | Source-level decoder checks and author-confirmed marine test context |
-| Stack | Python, JavaScript, C#, CANopen, Saleae HLA, CanKing WIT host interfaces |
+| Stack | Python, JavaScript, C#, CANopen, Saleae HLA, CanKing WIT host interfaces, Kvaser canlib, pyserial, tkinter |
 | Author | [hupositoc](https://github.com/hupositoc) |
 
 [Case study](docs/case-study.md) · [Architecture](docs/architecture.md) · [Validation](docs/validation.md) · [Design rationale](docs/design-rationale.md)
@@ -40,11 +40,14 @@ A CAN identifier and a byte string are insufficient for quick interpretation dur
 
 Provide a Saleae HLA that maps common CANopen identifiers and fields to readable events, plus CanKing host processors that track heartbeat counts, timeout state and recovery. Keep decoding and liveness monitoring separate because a valid message and timely communication are different questions.
 
+A third tool, the SDO + SSI logger, actively asks the module instead of only listening: it reads the CiA 301 identity objects once, polls communication objects (error register, heartbeat and guard settings) during a run, and writes SSI encoder bytes from a serial bridge into the same timestamped session log.
+
 ### What this made possible
 
 - Read NMT, SYNC, emergency, PDO, SDO and heartbeat events without repeatedly looking up identifier ranges.
 - Track heartbeat arrival and timeout transitions during a performance log.
 - Relate communication-state observations to periodic status-signal measurements from the wider test setup.
+- Keep SDO answers, SDO aborts and SSI encoder data in one session log, so a missing CAN response and a silent encoder can be told apart.
 
 ### What happened in practice
 
@@ -52,7 +55,7 @@ The code provides readable protocol interpretation and state-tracking support fo
 
 ### Built With
 
-Python, JavaScript, C#, CANopen, Saleae HLA, CanKing WIT host interfaces. Dependencies provide integration capabilities; the source links below identify the project-specific behavior.
+Python, JavaScript, C#, CANopen, Saleae HLA, CanKing WIT host interfaces, Kvaser canlib, pyserial, tkinter. Dependencies provide integration capabilities; the source links below identify the project-specific behavior.
 
 ### Engineering decisions
 
@@ -78,6 +81,9 @@ JS and C# defaults differ. They are related implementations, not a verified equi
 | [`timeoutMs`](heartbeat-js/basic.js#L4) | JS host state machine; default timeout 6000 ms. |
 | [`TimeoutMs`](heartbeat-csharp/basic.cs#L13) | C# host state machine; default timeout 3000 ms. |
 | [`world`](heartbeat-js/dataprocessor.wit#L6) | Describes the host/component interface. |
+| [`sdo_upload_request`](sdo-ssi-logger/sdo_ssi_logger.py) | Builds the expedited SDO upload request (COB-ID 0x600 + node). |
+| [`parse_sdo_response`](sdo-ssi-logger/sdo_ssi_logger.py) | Separates data replies from abort codes and names the CiA 301 abort reason. |
+| [`SdoSsiLogger`](sdo-ssi-logger/sdo_ssi_logger.py) | tkinter GUI; CAN and SSI workers report to the UI through a queue. |
 
 ### AI-assisted engineering
 
@@ -87,7 +93,7 @@ I use AI development tools to turn concrete needs into working software. My engi
 
 ### Prerequisites
 
-Python for decoder tests; Logic 2 for the HLA; the relevant CanKing host and WASI toolchain for JS/C# processors.
+Python for decoder tests; Logic 2 for the HLA; a Kvaser interface with canlib and pyserial for the SDO + SSI logger; the relevant CanKing host and WASI toolchain for JS/C# processors.
 
 ### Installation
 
@@ -119,6 +125,7 @@ Decoder fixture tests exercise actual HLA parsing through a minimal frame-interf
 - The HLA is a focused decoder and does not cover every CANopen service or malformed-frame condition.
 - CanKing API/WASI integration and real-bus timing have not been revalidated here.
 - Timeout and node-ID defaults are configuration examples, not certification requirements.
+- The SDO + SSI logger handles expedited uploads only (no segmented transfer) and has not been rerun on hardware since publication.
 
 Read the [case study](docs/case-study.md) for the purpose and enabled workflow, and [architecture](docs/architecture.md) for the source-level explanation. The [validation document](docs/validation.md) separates verified checks, author-reported use and pending integration work.
 
